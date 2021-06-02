@@ -1,0 +1,61 @@
+﻿@page "/"
+    
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+@inject NavigationManager navigationManager 
+
+<!-- instalar nuget ->  Microsoft.AspNetCore.SignalR.Client   -->
+
+<div class="row">
+    <div class="col-12">
+        <label>Mensaje</label>
+        <input type="text" @bind="text" />
+        <button @onclick="Send" >Enviar</button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        @foreach (var item in texts)
+        {
+          <p>@item</p>
+        }
+
+    </div>
+    
+</div>
+
+
+@code {
+
+    private HubConnection hubConnection;
+    private string text;
+    List<string> texts = new List<string>();
+
+    //metodo para cuando este cargado el componente
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(navigationManager.ToAbsoluteUri("/chathub")).Build();
+
+        //metodo que recibe
+        hubConnection.On<string>("RecibeMessage", (recibeText) => 
+        {
+            texts.Add(recibeText);
+            text = "";            
+            StateHasChanged();
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    //metodo para mandar texto 
+    public async Task Send() => await hubConnection.SendAsync("Send", text);
+
+
+
+    public  async ValueTask DisposeAsync()
+    {
+        await hubConnection.DisposeAsync();
+    }
+}
